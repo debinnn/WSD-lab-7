@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Book Catalogue</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .hover-effect:hover {
+            transform: scale(1.05);
+            transition: transform 0.2s;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4 center text-center">Book Catalogue</h1>
+        <div class="flex justify-between items-center mb-4">
+            <input id="search" type="text" placeholder="Search..." class="p-2 border border-gray-300 rounded">
+            <select id="sort" class="p-2 border border-gray-300 rounded">
+                <option value="title">Sort by Title</option>
+                <option value="author">Sort by Author</option>
+            </select>
+        </div>
+        <div id="book-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="pagination" class="mt-4 flex justify-center"></div>
+        <div id="error" class="mt-4 text-red-500"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const bookList = document.getElementById('book-list');
+            const searchInput = document.getElementById('search');
+            const sortSelect = document.getElementById('sort');
+            const pagination = document.getElementById('pagination');
+            const errorDiv = document.getElementById('error');
+            let books = [];
+            let filteredBooks = [];
+            let currentPage = 1;
+            const booksPerPage = 6;
+
+            function fetchBooks() {
+                fetch('books.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        books = data;
+                        filteredBooks = books;
+                        renderBooks();
+                        renderPagination();
+                    })
+                    .catch(error => {
+                        errorDiv.textContent = 'Error fetching books. Please try again later.';
+                        console.error('Error fetching books:', error);
+                    });
+            }
+
+            function renderBooks() {
+                bookList.innerHTML = '';
+                const start = (currentPage - 1) * booksPerPage;
+                const end = start + booksPerPage;
+                const booksToShow = filteredBooks.slice(start, end);
+
+                if (booksToShow.length === 0) {
+                    errorDiv.textContent = 'No books found matching your search criteria.';
+                } else {
+                    errorDiv.textContent = '';
+                    booksToShow.forEach(book => {
+                        const bookItem = document.createElement('div');
+                        bookItem.classList.add('bg-white', 'p-4', 'rounded', 'shadow', 'hover-effect');
+                        bookItem.innerHTML = `
+                            <h2 class="text-xl font-bold">${book.title}</h2>
+                            <p class="text-gray-700">by ${book.author}</p>
+                        `;
+                        bookList.appendChild(bookItem);
+                    });
+                }
+            }
+
+            function renderPagination() {
+                pagination.innerHTML = '';
+                const totalPages = Math.ceil(filteredBooks.length / booksPerPage);
+
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageButton = document.createElement('button');
+                    pageButton.classList.add('mx-1', 'px-3', 'py-1', 'border', 'border-gray-300', 'rounded');
+                    if (i === currentPage) {
+                        pageButton.classList.add('bg-gray-300');
+                    }
+                    pageButton.textContent = i;
+                    pageButton.addEventListener('click', () => {
+                        currentPage = i;
+                        renderBooks();
+                        renderPagination();
+                    });
+                    pagination.appendChild(pageButton);
+                }
+            }
+
+            function filterBooks() {
+                const query = searchInput.value.toLowerCase();
+                filteredBooks = books.filter(book => book.title.toLowerCase().includes(query) || book.author.toLowerCase().includes(query));
+                renderBooks();
+                renderPagination();
+            }
+
+            function sortBooks() {
+                const sortBy = sortSelect.value;
+                filteredBooks.sort((a, b) => a[sortBy].localeCompare(b[sortBy]));
+                renderBooks();
+                renderPagination();
+            }
+
+            searchInput.addEventListener('input', filterBooks);
+            sortSelect.addEventListener('change', sortBooks);
+
+            fetchBooks();
+        });
+    </script>
+</body>
+</html>
